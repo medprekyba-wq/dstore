@@ -1,0 +1,57 @@
+[
+  {
+    "id": "cm97z8fjc0000uvt0513psd9c",
+    "name": "John Doe",
+    "email": "john.doe@gmail.com",
+    "emailVerified": null,
+    "image": null,
+    "password": "$2b$10$CJ7NrFoUUsvXuD1K0LAlm.efA/ZjJ9Um8mwGYAen5lUS9yYQWTyMG",
+    "passwordResetToken": null,
+    "passwordResetTokenExp": null,
+    "role": "MANAGER"
+  },
+  {
+    "id": "cm97za3pd0001uvt0u1x43cd6",
+    "name": "Mark Doe",
+    "email": "mark.doe@gmail.com",
+    "emailVerified": null,
+    "image": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1746441292/next-merce-admin-uploads/k56dbgcxzgkuttqg4ug1.jpg",
+    "password": "$2b$10$QVCzulHeJksWYZKHEkFSKOeQPvXgH7L45zzytn2DebM1dfGIBv8US",
+    "passwordResetToken": null,
+    "passwordResetTokenExp": null,
+    "role": "ADMIN"
+  },
+  {
+    "id": "cm97zbj290002uvt03xmbaewo",
+    "name": "Jane Doe",
+    "email": "jane.doe@gmail.com",
+    "emailVerified": null,
+    "image": null,
+    "password": "$2b$10$xK0MI2Rit3Hh6Zp9sw/eL.q4RKqiHd7xjP3hfZW0g1MjXBpAAlsxq",
+    "passwordResetToken": null,
+    "passwordResetTokenExp": null,
+    "role": "USER"
+  },
+  {
+    "id": "cm9r7360g0000l809o5yorjq4",
+    "name": "Barry Allen",
+    "email": "barry.allen@gmail.com",
+    "emailVerified": null,
+    "image": null,
+    "password": "$2b$10$c5Sz69nv.hUwNLRjkKUiWO4eJzJT7lL3HwexbJHVxoazXDk/JIWa2",
+    "passwordResetToken": "c9699fed3b5eb074d32d0126edd373ec9c69e64f",
+    "passwordResetTokenExp": "2025-04-21 17:18:22.312",
+    "role": "USER"
+  },
+  {
+    "id": "cm9rbyy970000jp096fyp10vp",
+    "name": "Clark Kent",
+    "email": "clark.kent@gmail.com",
+    "emailVerified": null,
+    "image": null,
+    "password": "$2b$10$KbD2Uv7VF6X.4TE4C/1O9eAyxApytig5a2vup17cb4HFrYL7mstjK",
+    "passwordResetToken": null,
+    "passwordResetTokenExp": null,
+    "role": "USER"
+  }
+]

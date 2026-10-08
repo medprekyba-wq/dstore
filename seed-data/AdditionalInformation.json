@@ -1,0 +1,128 @@
+[
+  {
+    "id": "cm99ozhx70004uvngedpnc8e8",
+    "name": "Brand ",
+    "description": "Apple",
+    "productId": "cm99ozhv10001uvng2o3ex92e"
+  },
+  {
+    "id": "cm99ozhx70005uvngwcizyrpk",
+    "name": "Model",
+    "description": "iPhone 14",
+    "productId": "cm99ozhv10001uvng2o3ex92e"
+  },
+  {
+    "id": "cm99ozhx70006uvnglj5vljo0",
+    "name": "Memory",
+    "description": "128GB 6GB RAM | 256GB 6GB RAM | 512GB 6GB RAM",
+    "productId": "cm99ozhv10001uvng2o3ex92e"
+  },
+  {
+    "id": "cm99ozhx70007uvngbvypj7gz",
+    "name": "Main Camera",
+    "description": "12MP + 12MP | 4K@24/25/30/60fps, stereo sound rec.",
+    "productId": "cm99ozhv10001uvng2o3ex92e"
+  },
+  {
+    "id": "cm99ozhx70008uvngtltmk9h8",
+    "name": "Selfie Camera",
+    "description": "12 MP | 4K@24/25/30/60fps, 1080p@25/30/60/120fps, gyro-EIS",
+    "productId": "cm99ozhv10001uvng2o3ex92e"
+  },
+  {
+    "id": "cm99riocn000fuvngxshqdhbd",
+    "name": "Brand",
+    "description": "Apple",
+    "productId": "cm99riocn000cuvng08gk5ozb"
+  },
+  {
+    "id": "cm99riocn000guvngl1ue429p",
+    "name": "Model",
+    "description": "MackBook air m1",
+    "productId": "cm99riocn000cuvng08gk5ozb"
+  },
+  {
+    "id": "cm99riocn000huvngl7pu3gzl",
+    "name": "Display Size",
+    "description": "15inchs",
+    "productId": "cm99riocn000cuvng08gk5ozb"
+  },
+  {
+    "id": "cm99riocn000iuvngel214nx5",
+    "name": "Display Type",
+    "description": "Super Retina XDR OLED, HDR10, Dolby Vision, 800 nits (HBM), 1200 nits (peak)",
+    "productId": "cm99riocn000cuvng08gk5ozb"
+  },
+  {
+    "id": "cm99rioco000juvngxwvmf0xf",
+    "name": "Display Resolution",
+    "description": "1284 x 2778 pixels, 19.5:9 ratio",
+    "productId": "cm99riocn000cuvng08gk5ozb"
+  },
+  {
+    "id": "cm99sa8ds000zuvng0usuv2kc",
+    "name": "Keys",
+    "description": "12 keys",
+    "productId": "cm99sa8ds000wuvngdzg4qyeb"
+  },
+  {
+    "id": "cm99sa8ds0010uvngjzln0is5",
+    "name": "Number of buttons",
+    "description": "8 buttons and 2 mini-joysticks",
+    "productId": "cm99sa8ds000wuvngdzg4qyeb"
+  },
+  {
+    "id": "cm99sa8ds0011uvngp26gqv9i",
+    "name": "Others",
+    "description": "D-Pad: YES Mini Stick: 2",
+    "productId": "cm99sa8ds000wuvngdzg4qyeb"
+  },
+  {
+    "id": "cm99sa8ds0012uvngkxqlw6wy",
+    "name": "Brand",
+    "description": "Havit",
+    "productId": "cm99sa8ds000wuvngdzg4qyeb"
+  },
+  {
+    "id": "cm99sh8l40019uvnghqlke2cb",
+    "name": "brand",
+    "description": "Apple",
+    "productId": "cm99sh8l30016uvngzx6h38aw"
+  },
+  {
+    "id": "cm99t229l001ruvngzrb71my7",
+    "name": "brand",
+    "description": "apple",
+    "productId": "cm99t229l001ouvnglo6uiurk"
+  },
+  {
+    "id": "cma3g9sl00002hdmwmziojvtq",
+    "name": "Brand",
+    "description": "Apple",
+    "productId": "cm99ryzkq000nuvngf5bquoxe"
+  },
+  {
+    "id": "cma3g9sl00003hdmwpn820rlk",
+    "name": "Model",
+    "description": "Apple iMac m1",
+    "productId": "cm99ryzkq000nuvngf5bquoxe"
+  },
+  {
+    "id": "cma3g9sl00004hdmwhs81llvj",
+    "name": "Size",
+    "description": "20inchs",
+    "productId": "cm99ryzkq000nuvngf5bquoxe"
+  },
+  {
+    "id": "cma3g9sl00005hdmwf9epo7h5",
+    "name": "Chipset",
+    "description": "Apple A15 Bionic (5 nm)",
+    "productId": "cm99ryzkq000nuvngf5bquoxe"
+  },
+  {
+    "id": "cmacaykhi0003h60nr0g5xh6e",
+    "name": "Brand",
+    "description": "Apple",
+    "productId": "cm99sn0ja001buvnghyuc0t9q"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "cm8154mob00001mwrmsins7g6",
+    "name": "best deal",
+    "code": "WTPWDUPW",
+    "discount": 11,
+    "maxRedemptions": 1,
+    "timesRedemed": 1
+  },
+  {
+    "id": "cm815vf4k00011mwr6ai2hirz",
+    "name": "best deal",
+    "code": "DG0DIOOJ",
+    "discount": 9,
+    "maxRedemptions": 50,
+    "timesRedemed": 4
+  },
+  {
+    "id": "cm95kpff40000uvtk1tsugfe4",
+    "name": "pimjo-test",
+    "code": "pimjo",
+    "discount": 100,
+    "maxRedemptions": 100,
+    "timesRedemed": 0
+  }
+]

@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?
+  passwordResetToken    String?   @unique
+  passwordResetTokenExp DateTime?
+  role                  UserRole  @default(USER)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now()) @updatedAt
+  accounts              Account[]
+  addresses             Address[]
+  orders                Order[]
+  sessions              Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  comment     String
+  ratings     Int
+  productSlug String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isApproved  Boolean  @default(false)
+  product     Product  @relation(fields: [productSlug], references: [slug])
+}
+
+model Order {
+  id             String             @id @default(cuid())
+  userId         String?
+  billing        Json
+  shipping       Json?
+  shippingMethod Json
+  paymentMethod  String
+  notes          String?
+  couponDiscount Float?
+  products       Json
+  totalAmount    Float
+  paymentStatus  String             @default("pending")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  shippingStatus EnumShippingStatus @default(pending)
+  user           User?              @relation(fields: [userId], references: [id])
+  trackings      OrderTracking[]
+}
+
+model Coupon {
+  id             String   @id @default(cuid())
+  name           String
+  code           String   @unique
+  discount       Int
+  maxRedemptions Int
+  timesRedemed   Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Address {
+  id      String      @id @default(cuid())
+  userId  String
+  name    String
+  email   String
+  phone   String
+  address String
+  type    AddressType @default(ALL)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  title       String    @unique
+  img         String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  slug        String    @unique
+  products    Product[]
+}
+
+model Product {
+  id                    String                  @id @default(cuid())
+  price                 Decimal
+  discountedPrice       Decimal?
+  tags                  String[]
+  description           String?
+  shortDescription      String
+  offers                String[]
+  slug                  String                  @unique
+  sku                   String?                 @unique
+  body                  String?
+  quantity              Int
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  title                 String
+  categoryId            Int
+  additionalInformation AdditionalInformation[]
+  countdowns            Countdown[]
+  customAttributes      CustomAttribute[]
+  heroBanners           HeroBanner[]
+  heroSliders           HeroSlider[]
+  category              Category                @relation(fields: [categoryId], references: [id])
+  productVariants       ProductVariant[]        @relation("ProductVariants")
+  reviews               Review[]
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  color     String
+  image     String
+  size      String  @default("")
+  isDefault Boolean @default(false)
+  productId String
+  product   Product @relation("ProductVariants", fields: [productId], references: [id])
+}
+
+model AdditionalInformation {
+  id          String  @id @default(cuid())
+  name        String
+  description String
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+model CustomAttribute {
+  id              String           @id @default(cuid())
+  attributeName   String
+  productId       String
+  attributeValues AttributeValue[] @relation("CustomAttributeValues")
+  product         Product          @relation(fields: [productId], references: [id])
+}
+
+model AttributeValue {
+  id          String          @id @default(cuid())
+  title       String
+  attributeId String
+  attribute   CustomAttribute @relation("CustomAttributeValues", fields: [attributeId], references: [id])
+}
+
+model HeroBanner {
+  id          Int      @id @default(autoincrement())
+  bannerName  String?
+  bannerImage String
+  subtitle    String
+  slug        String   @unique
+  productSlug String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productSlug], references: [slug])
+}
+
+model HeroSlider {
+  id           Int      @id @default(autoincrement())
+  sliderName   String   @unique
+  sliderImage  String
+  discountRate Int
+  slug         String   @unique
+  productSlug  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productSlug], references: [slug])
+}
+
+model Countdown {
+  id             Int      @id @default(autoincrement())
+  title          String   @unique
+  subtitle       String
+  countdownImage String
+  slug           String?
+  countdownDate  DateTime
+  productSlug    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Product  @relation(fields: [productSlug], references: [slug])
+}
+
+model PostCategory {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  slug        String   @unique
+  img         String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+}
+
+model PostAuthor {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String
+  image       String
+  bio         String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+}
+
+model Post {
+  id         String       @id @default(cuid())
+  title      String
+  metadata   String?
+  slug       String       @unique
+  authorId   Int
+  categoryId Int
+  tags       String[]
+  mainImage  String
+  body       String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  author     PostAuthor   @relation(fields: [authorId], references: [id])
+  category   PostCategory @relation(fields: [categoryId], references: [id])
+}
+
+model PrivacyPolicy {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TermsConditions {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  subtitle    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SeoSetting {
+  id              Int      @id @default(autoincrement())
+  favicon         String?
+  siteName        String?  @default("Cozy-commerce")
+  siteTitle       String?  @default("Home Page")
+  metadescription String?
+  metaImage       String?
+  metaKeywords    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  gtmId           String?
+}
+
+model HeaderSetting {
+  id            Int      @id @default(autoincrement())
+  headerText    String?
+  headerTextTwo String?
+  headerLogo    String?
+  emailLogo     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OrderTracking {
+  id          String   @id @default(cuid())
+  orderId     String
+  status      String
+  message     String
+  location    String?
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MANAGER
+}
+
+enum EnumShippingStatus {
+  pending
+  processing
+  delivered
+  cancel
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+  ALL
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  author      String
+  designation String?
+  content     String
+  rating      Int      @default(5)
+  avatar      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

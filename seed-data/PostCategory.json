@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "title": "tech",
+    "slug": "tech",
+    "img": null,
+    "description": null
+  },
+  {
+    "id": 3,
+    "title": "art",
+    "slug": "art",
+    "img": null,
+    "description": null
+  },
+  {
+    "id": 4,
+    "title": "lifestyle",
+    "slug": "lifestyle",
+    "img": null,
+    "description": null
+  },
+  {
+    "id": 5,
+    "title": "business",
+    "slug": "business",
+    "img": null,
+    "description": null
+  }
+]

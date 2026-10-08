@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "name": "John smith",
+    "slug": "john-smith",
+    "image": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1741753103/next-merce-admin-uploads/z9ssn9e6qluglv44lcaf.jpg",
+    "bio": "John Smith is a dedicated professional with a passion for innovation and problem-solving. With a strong background in [industry or field], he excels in [specific skills or expertise]. Known for his analytical thinking and teamwork, John thrives in dynamic environments, always seeking new opportunities to learn and grow. In his free time, he enjoys [hobbies or interests], making him a well-rounded and driven individual.",
+    "description": "John Smith is a dedicated professional with a passion for innovation and problem-solving. With a strong background in [industry or field], he excels in [specific skills or expertise]. Known for his analytical thinking and teamwork, John thrives in dynamic environments, always seeking new opportunities to learn and grow. In his free time, he enjoys [hobbies or interests], making him a well-rounded and driven individual."
+  }
+]

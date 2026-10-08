@@ -1,0 +1,39 @@
+[
+  {
+    "id": "cm99ugg8c001xuvngsxlef091",
+    "name": "Naim",
+    "email": "naim.pimjo@gmail.com",
+    "comment": "Nice product! Great quality and exactly as described. Very satisfied with the purchase!",
+    "ratings": 5,
+    "isApproved": true,
+    "productSlug": "iphone-14-plus--6128gb"
+  },
+  {
+    "id": "cm9jk5tio0001zu8q2cgcen5e",
+    "name": "Naim",
+    "email": "naim.pimjo@gmail.com",
+    "comment": "Awesome",
+    "ratings": 5,
+    "isApproved": true,
+    "productSlug": "apple-watch-ultra"
+  },
+  {
+    "id": "cmaalrn0a0001hdb7iigu6lbd",
+    "name": "Naim",
+    "email": "naim.pimjo@gmail.com",
+    "comment": "Nice product! Great quality and exactly as described. Very satisfied with the purchase!",
+    "ratings": 3,
+    "isApproved": true,
+    "productSlug": "portable-electric-grinder-maker"
+  },
+  {
+    "id": "cmaani7e40003hdb754ssocpm",
+    "name": "Naim",
+    "email": "naim.pimjo@gmail.com",
+    "comment": "Nice product! Great quality and exactly as described. Very satisfied with the purchase!",
+    "ratings": 4,
+    "createdAt": "2025-05-05 05:39:35.787",
+    "isApproved": true,
+    "productSlug": "indoor-steel-adjustable-silent-treadmill-home-fitness"
+  }
+]

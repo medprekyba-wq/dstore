@@ -1,0 +1,26 @@
+[
+  {
+    "id": 8,
+    "sliderName": "iPad Air 13\" M2 Chip 128GB Blue",
+    "sliderImage": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1745925660/hero-sliders/notrn8jsgb1jfd0yfma2.png",
+    "discountRate": 30,
+    "slug": "apple-ipad-air-128",
+    "productSlug": "iphone-14-plus--6128gb"
+  },
+  {
+    "id": 9,
+    "sliderName": "True Wireless Noise Cancelling Headphone",
+    "sliderImage": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1745925532/hero-sliders/rqunuf3xfnayj7whsfaj.png",
+    "discountRate": 29,
+    "slug": "true-wireless-noise-cancelling-headphone",
+    "productSlug": "true-wireless-noise-cancelling-headphone"
+  },
+  {
+    "id": 10,
+    "sliderName": "Galaxy S24 Ultra 12/256GB",
+    "sliderImage": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1745925702/hero-sliders/calhxdo8l2s8fxgusail.png",
+    "discountRate": 20,
+    "slug": "apple-watch-ultra",
+    "productSlug": "iphone-14-plus--6128gb"
+  }
+]

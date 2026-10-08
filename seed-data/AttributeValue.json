@@ -1,0 +1,51 @@
+[
+  {
+    "id": "128-gb",
+    "title": "128 GB",
+    "attributeId": "cm99ozhxm0009uvng824gmou2"
+  },
+  {
+    "id": "14inch",
+    "title": "14 Inches",
+    "attributeId": "cm99rioco000luvng8a7251kn"
+  },
+  {
+    "id": "150-gb",
+    "title": "150 GB",
+    "attributeId": "cm99rioco000kuvng3618ql6s"
+  },
+  {
+    "id": "16inch",
+    "title": "16 Inches",
+    "attributeId": "cm99rioco000luvng8a7251kn"
+  },
+  {
+    "id": "256-gb",
+    "title": "256 GB",
+    "attributeId": "cm99rioco000kuvng3618ql6s"
+  },
+  { "id": "533", "title": "533", "attributeId": "cma3g9uqj0007hdmwsoqaazi7" },
+  {
+    "id": "64-gb",
+    "title": "64 GB",
+    "attributeId": "cm99ozhxm0009uvng824gmou2"
+  },
+  { "id": "dual", "title": "Dual", "attributeId": "cm99ozhy7000auvng69bws8yt" },
+  {
+    "id": "e-sim",
+    "title": "E Sim",
+    "attributeId": "cm99ozhy7000auvng69bws8yt"
+  },
+  {
+    "id": "hb-g96",
+    "title": "HB-G96",
+    "attributeId": "cm99sa8ds0013uvngac1oapkp"
+  },
+  {
+    "id": "mg-h56",
+    "title": "MG-H56",
+    "attributeId": "cm99sa8ds0013uvngac1oapkp"
+  },
+  { "id": "no", "title": "NO", "attributeId": "cm99sa8mw0014uvng6eo9qz2c" },
+  { "id": "yes", "title": "YES", "attributeId": "cm99sa8mw0014uvng6eo9qz2c" }
+]

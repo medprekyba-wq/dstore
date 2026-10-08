@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "title": "Laptop & PC",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1740985505/categories/swuffjmk6doqfwfqdpyh.png",
+    "description": "Laptop & PC – Power your productivity with high-performance laptops and PCs. Whether for work, gaming, or everyday use, find the perfect device to match your needs. ",
+    "slug": "laptop-&-pc"
+  },
+  {
+    "id": 2,
+    "title": "Watches",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1740985607/categories/meemu8n6yp0lyyzmsd6n.png",
+    "description": "Watches – Elevate your style with timeless elegance. From classic to smartwatches, find the perfect timepiece for every occasion. ",
+    "slug": "watches"
+  },
+  {
+    "id": 3,
+    "title": "Mobile & Tablets",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1741162140/categories/qgjmrbh5fkv74rlealrm.png",
+    "description": "",
+    "slug": "mobile--tablets"
+  },
+  {
+    "id": 4,
+    "title": "Health & Sports",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1741162298/categories/crahtfaukrdujwa73enm.png",
+    "description": "",
+    "slug": "health--sports"
+  },
+  {
+    "id": 5,
+    "title": "Home Appliances",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1741162332/categories/rnvnefwu4efmxvcp0nu7.png",
+    "description": "",
+    "slug": "home-appliances"
+  },
+  {
+    "id": 6,
+    "title": "Games & Videos",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1741162401/categories/pacp6ecrtdbmtrq9afnw.png",
+    "description": "",
+    "slug": "games--videos"
+  },
+  {
+    "id": 7,
+    "title": "Televisions",
+    "img": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1741162446/categories/szon3y1gapmy2drdgo7l.png",
+    "description": "",
+    "slug": "televisions"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": 10,
+    "bannerName": "iPhone 16 Pro & 16 Pro Max",
+    "bannerImage": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1745922672/hero-banners/e6g6slkel5i7nfxt4pbv.png",
+    "slug": "iphone-16-pro-8-128gb",
+    "productSlug": "iphone-14-plus--6128gb",
+    "subtitle": "Get your desired phon from featured category"
+  },
+  {
+    "id": 11,
+    "bannerName": "Mackbook Pro M4",
+    "bannerImage": "https://res.cloudinary.com/dc6svbdh9/image/upload/v1745922631/hero-banners/v7bxpz6iiv9sg0shlbei.png",
+    "slug": "macbook-pro-512-16gb",
+    "productSlug": "macbook-air-m1-chip-8256gb",
+    "subtitle": "14-core CPU with 10 and 4 efficiency cores"
+  }
+]
