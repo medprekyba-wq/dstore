@@ -1,6 +1,6 @@
 import { CartItem } from "@/redux/features/cart-slice";
 
-const CART_STORAGE_KEY = "cozycommerce-cart";
+const CART_STORAGE_KEY = "dstore-cart";
 
 /**
  * Save cart items to localStorage

@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://demo.cozycommerce.dev
+Host: https://www.diagnostore.com
 
 # Sitemaps
-Sitemap: https://demo.cozycommerce.dev/sitemap.xml
+Sitemap: https://www.diagnostore.com/sitemap.xml

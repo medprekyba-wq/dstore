@@ -109,7 +109,7 @@ export const InvoiceDownload = ({
                     />
                   ) : (
                     <span style={{ fontSize: "20px", fontWeight: 700, color: "#1E293B" }}>
-                      {storeName || "CozyCommerce"}
+                      {storeName || "DiagnoStore"}
                     </span>
                   )}
                 </div>

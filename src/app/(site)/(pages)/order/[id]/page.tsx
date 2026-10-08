@@ -76,7 +76,7 @@ async function getInvoiceData(id: string) {
     discount: order.couponDiscount || 0,
     totalAmount: order.totalAmount || 0,
     logo: headerSettingData?.headerLogo || null,
-    storeName: headerSettingData?.headerLogo ? undefined : "CozyCommerce",
+    storeName: headerSettingData?.headerLogo ? undefined : "DiagnoStore.com",
   };
 }
 

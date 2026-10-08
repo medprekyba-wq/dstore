@@ -14,8 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const seoSettings = await getSeoSettings();
   const site_name = await getSiteName();
   return {
-    title: `CozyCommerce Store`,
-    description: "This is a site of CozyCommerce",
+    title: `DiagnoStore.com`,
+    description: "Medical Equipment and Diagnostic Devices Online",
     keywords: seoSettings?.metaKeywords || "e-commerce, online store",
     openGraph: {
       images: seoSettings?.metaImage ? [seoSettings.metaImage] : [],
