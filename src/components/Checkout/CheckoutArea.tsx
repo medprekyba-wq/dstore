@@ -1,4 +1,5 @@
 "use client";
+
 import { useCart } from "@/hooks/useCart";
 import convertToSubcurrency from "@/lib/convertToSubcurrency";
 import { useElements, useStripe } from "@stripe/react-stripe-js";
@@ -6,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+
 import Billing from "./Billing";
 import Coupon from "./Coupon";
 import Login from "./Login";
@@ -13,7 +15,8 @@ import Notes from "./Notes";
 import PaymentMethod from "./PaymentMethod";
 import Shipping from "./Shipping";
 import ShippingMethod from "./ShippingMethod";
-import { CheckoutInput, useCheckoutForm } from "./form";
+import { useCheckoutForm } from "./form";
+import type { CheckoutInput } from "./form";
 import Orders from "./orders";
 
 const CheckoutArea = ({ amount }: { amount: number }) => {
@@ -24,194 +27,411 @@ const CheckoutArea = ({ amount }: { amount: number }) => {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
-  const [errorMessage, setErrorMessage] = useState<string>();
-  const [clientSecret, setClientSecret] = useState("");
-  const [loading, setLoading] = useState(false);
+
   const { cartDetails } = useCart();
 
-  // Create a PaymentIntent as soon as the page loads
+  const [errorMessage, setErrorMessage] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(true);
+
+  // Create Stripe PaymentIntent
   useEffect(() => {
-    fetch("/api/create-payment-intent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ amount: convertToSubcurrency(amount) }),
-    })
-      .then((res) => res.json())
-      .then((data) => setClientSecret(data.clientSecret));
-  }, [amount]);
+    let active = true;
 
-  // Handle checkout
-  const handleCheckout = async (data: CheckoutInput) => {
-    setLoading(true);
-    setErrorMessage("");
-
-    if (data.billing.createAccount) {
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: data.billing.email,
-          name: data.billing.firstName + " " + data.billing?.lastName,
-          password: "12345678",
-        }),
-      });
-      const result = await response.json();
-      if (!result?.success) {
-        toast.error(
-          `${result?.message} for creating account` || "Failed to register user"
-        );
-        setLoading(false);
-        return;
-      }
-    }
-
-    // Helper function to create order
-    const createOrder = async (paymentStatus: "pending" | "paid") => {
-      const orderData = {
-        ...data,
-        totalAmount: amount,
-        userId: session?.user?.id || null,
-        paymentStatus,
-        couponCode: data.couponCode,
-        products: Object.values(cartDetails ?? {}).map((item) => ({
-          id: item.id,
-          name: item.name,
-          slug: item.slug || item.id,
-          image: item.image || "",
-          price: item.price,
-          quantity: item.quantity,
-        })),
-      };
+    const createPaymentIntent = async () => {
+      setPaymentLoading(true);
+      setClientSecret("");
+      setErrorMessage("");
 
       try {
-        const orderResponse = await fetch("/api/order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderData),
-        });
-        const result = await orderResponse.json();
+        const response = await fetch(
+          "/api/create-payment-intent",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              amount: convertToSubcurrency(amount),
+            }),
+          }
+        );
 
-        if (!result?.success) {
-          toast.error(result?.message || "Failed to create order");
-          return false;
+        if (!response.ok) {
+          throw new Error(
+            "Unable to initialize payment."
+          );
         }
 
-        toast.success("Order created successfully");
-        router.push(`/order/${result?.data?.id}`);
-        return true;
-      } catch (err: any) {
-        console.error("Order creation error:", err);
-        toast.error(err?.message || "Failed to create order");
-        return false;
+        const result = await response.json();
+
+        if (!result?.clientSecret) {
+          throw new Error(
+            "Payment initialization failed."
+          );
+        }
+
+        if (active) {
+          setClientSecret(result.clientSecret);
+        }
+      } catch (error) {
+        console.error(
+          "PaymentIntent creation error:",
+          error
+        );
+
+        if (active) {
+          setErrorMessage(
+            "Unable to initialize Stripe payment. Please try again."
+          );
+        }
+      } finally {
+        if (active) {
+          setPaymentLoading(false);
+        }
       }
     };
 
-    if (data.paymentMethod === "cod") {
-      const success = await createOrder("pending");
-      setLoading(false); // Stop loading regardless of success or failure
-      if (!success) return; // Exit if order creation failed
-      return;
+    if (amount > 0) {
+      createPaymentIntent();
+    } else {
+      setPaymentLoading(false);
     }
 
-    if (!stripe || !elements) return;
-    // Continue with Stripe Payment if NOT COD
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      setErrorMessage(submitError.message);
-      setLoading(false);
-      return;
+    return () => {
+      active = false;
+    };
+  }, [amount]);
+
+  // Register customer account
+  const registerCustomer = async (
+    data: CheckoutInput
+  ): Promise<boolean> => {
+    if (!data.billing.createAccount) {
+      return true;
     }
 
-    const siteUrl = process.env.SITE_URL || "http://www.localhost:3000";
     try {
-      const { paymentIntent, error } = await stripe.confirmPayment({
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.billing.email,
+          name: [
+            data.billing.firstName,
+            data.billing.lastName,
+          ]
+            .filter(Boolean)
+            .join(" "),
+          password: "12345678",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        toast.error(
+          result?.message ||
+            "Failed to create account"
+        );
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Account registration error:",
+        error
+      );
+
+      toast.error(
+        "Unable to create account."
+      );
+
+      return false;
+    }
+  };
+
+  // Create order
+  const createOrder = async (
+    data: CheckoutInput,
+    paymentStatus: "pending" | "paid",
+    paymentIntentId?: string
+  ): Promise<boolean> => {
+    const orderData = {
+      ...data,
+
+      totalAmount: amount,
+
+      userId: session?.user?.id || null,
+
+      paymentStatus,
+
+      paymentIntentId,
+
+      couponCode: data.couponCode,
+
+      products: Object.values(
+        cartDetails ?? {}
+      ).map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug || item.id,
+        image: item.image || "",
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    };
+
+    try {
+      const response = await fetch("/api/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        toast.error(
+          result?.message ||
+            "Failed to create order"
+        );
+        return false;
+      }
+
+      toast.success(
+        "Order created successfully"
+      );
+
+      router.push(
+        `/order/${result?.data?.id}`
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Order creation error:",
+        error
+      );
+
+      toast.error(
+        "Failed to create order."
+      );
+
+      return false;
+    }
+  };
+
+  // Handle checkout
+  const handleCheckout = async (
+    data: CheckoutInput
+  ) => {
+    if (loading) return;
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      // Register account if requested
+      const accountCreated =
+        await registerCustomer(data);
+
+      if (!accountCreated) {
+        return;
+      }
+
+      // Cash on Delivery
+      if (data.paymentMethod === "cod") {
+        await createOrder(
+          data,
+          "pending"
+        );
+        return;
+      }
+
+      // Stripe readiness check
+      if (
+        !stripe ||
+        !elements ||
+        !clientSecret
+      ) {
+        setErrorMessage(
+          "Payment system is not ready. Please try again."
+        );
+        return;
+      }
+
+      // Validate Stripe Payment Element
+      const { error: submitError } =
+        await elements.submit();
+
+      if (submitError) {
+        setErrorMessage(
+          submitError.message ||
+            "Please check your payment details."
+        );
+        return;
+      }
+
+      const siteUrl =
+        window.location.origin;
+
+      // Confirm Stripe payment
+      const {
+        paymentIntent,
+        error,
+      } = await stripe.confirmPayment({
         elements,
         clientSecret,
+
         confirmParams: {
-          return_url: `${siteUrl}/success?amount=${amount}`, // Fallback for redirect methods
+          return_url:
+            `${siteUrl}/success?amount=${amount}`,
         },
+
         redirect: "if_required",
       });
 
       if (error) {
-        console.log(error, "error in payment");
-        setErrorMessage(error.message);
-        setLoading(false);
+        console.error(
+          "Stripe payment error:",
+          error
+        );
+
+        setErrorMessage(
+          error.message ||
+            "Payment failed. Please try again."
+        );
+
         return;
       }
 
-      if (paymentIntent?.status === "succeeded") {
-        const orderSuccess = await createOrder("paid");
-        if (!orderSuccess) {
-          toast.error(
-            "Payment was successful, but order creation failed. Please contact support."
+      if (
+        paymentIntent?.status ===
+        "succeeded"
+      ) {
+        const orderCreated =
+          await createOrder(
+            data,
+            "paid",
+            paymentIntent.id
           );
+
+        if (!orderCreated) {
+          setErrorMessage(
+            "Your payment was successful, but your order could not be saved. Please contact support with your payment reference."
+          );
+
           console.error(
-            "Payment succeeded but order failed. PaymentIntent:",
-            paymentIntent
+            "Payment succeeded but order creation failed:",
+            paymentIntent.id
           );
         }
-      }
-    } catch (err) {
-      console.log(err, "err in payment");
-      setErrorMessage("Order processing failed. Please try again.");
-    }
 
-    setLoading(false);
+        return;
+      }
+
+      if (
+        paymentIntent?.status ===
+        "processing"
+      ) {
+        toast.success(
+          "Payment is processing."
+        );
+        return;
+      }
+
+      setErrorMessage(
+        "Payment was not completed. Please try again."
+      );
+    } catch (error) {
+      console.error(
+        "Checkout processing error:",
+        error
+      );
+
+      setErrorMessage(
+        "Order processing failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Check if Stripe is loaded
-  if (!clientSecret || !stripe || !elements) {
-    return (
-      <div className="mt-48 text-center">
-        <div className="flex items-center justify-center h-80">
-          <div className="relative flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-blue border-t-transparent rounded-full animate-spin mb-3.5 text-center"></div>
-            <p className="mt-4 text-lg font-semibold text-blue">
-              Processing to checkout...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <section className="pb-20 overflow-hidden bg-gray-2">
-        <div className="w-full mx-auto max-w-7xl">
-          {!Boolean(session?.user) && <Login />}
+    <section className="pb-20 overflow-hidden bg-gray-2">
+      <div className="w-full mx-auto max-w-7xl">
+        {!session?.user && <Login />}
 
-          <form className="contents" onSubmit={handleSubmit(handleCheckout)}>
-            <Billing />
+        <form
+          className="contents"
+          onSubmit={handleSubmit(
+            handleCheckout
+          )}
+        >
+          <Billing />
 
-            <Shipping />
+          <Shipping />
 
-            <Notes />
+          <Notes />
 
-            <Orders />
+          <Orders />
 
-            <Coupon />
+          <Coupon />
 
-            <ShippingMethod />
+          <ShippingMethod />
 
-            <PaymentMethod amount={amount} />
+          <PaymentMethod amount={amount} />
 
-            <button
-              type="submit"
-              className="w-full flex justify-center font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark mt-7.5"
+          <button
+            type="submit"
+            disabled={loading}
+            className="
+              w-full
+              flex
+              justify-center
+              font-medium
+              text-white
+              bg-blue
+              py-3
+              px-6
+              rounded-md
+              ease-out
+              duration-200
+              hover:bg-blue-dark
+              mt-7.5
+              disabled:opacity-50
+              disabled:cursor-not-allowed
+            "
+          >
+            {loading
+              ? "Processing..."
+              : `Pay $${amount.toFixed(2)}`}
+          </button>
+
+          {paymentLoading && (
+            <p className="mt-3 text-center text-sm text-gray-6">
+              Initializing payment...
+            </p>
+          )}
+
+          {errorMessage && (
+            <p
+              role="alert"
+              className="mt-3 text-center text-red"
             >
-              {!loading ? `Pay $${amount}` : "Processing..."}
-            </button>
-            {errorMessage && (
-              <p className="mt-2 text-center text-red">{errorMessage}</p>
-            )}
-          </form>
-        </div>
-      </section>
-    </>
+              {errorMessage}
+            </p>
+          )}
+        </form>
+      </div>
+    </section>
   );
 };
 

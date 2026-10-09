@@ -38,7 +38,7 @@ const Footer = () => {
                <li>
                 <Link href="mailto:orders@diagnostore.com" className="flex gap-4.5 text-base">
                   <EmailIcon className="fill-blue" width={24} height={24} />
-                  support@diagnostore.com
+                  orders@diagnostore.com
                 </Link>
               </li>
             </ul>

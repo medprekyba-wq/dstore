@@ -26,7 +26,7 @@ type Props = {
 
 const ProductItem = ({
   item,
-  bgClr = "[#F6F7FB]",
+  bgClr = "[#FFFFFF]",
 }: Props) => {
   const mainImage =
     item.productImages?.[0]?.image || "";

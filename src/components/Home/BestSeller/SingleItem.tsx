@@ -312,7 +312,7 @@ const SingleItem = ({
 
   return (
     <div className="group">
-      <div className="relative overflow-hidden rounded-xl bg-[#F6F7FB] min-h-[403px]">
+      <div className="relative overflow-hidden rounded-xl min-h-[403px]">
         {/* ================================================= */}
         {/* PRODUCT TITLE + PRICE */}
         {/* ================================================= */}

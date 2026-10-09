@@ -1,18 +1,105 @@
-
 "use client";
 
+import { useMemo } from "react";
 import { CheckMarkIcon } from "@/assets/icons";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import { InputGroup } from "../ui/input";
 import { useCheckoutForm } from "./form";
 import { useSession } from "next-auth/react";
+import { Country, State } from "country-state-city";
+import Select, { type StylesConfig } from "react-select";
+import PhoneInput, {
+  isValidPhoneNumber,
+} from "react-phone-number-input";
+import type { Country as PhoneCountry } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+const selectStyles: StylesConfig<SelectOption, false> = {
+  control: (base, state) => ({
+    ...base,
+    minHeight: "44px",
+    borderRadius: "8px",
+    borderColor: state.isFocused ? "#3C50E0" : "#E5E7EB",
+    boxShadow: "none",
+    fontSize: "14px",
+    "&:hover": {
+      borderColor: "#3C50E0",
+    },
+  }),
+
+  placeholder: (base) => ({
+    ...base,
+    color: "#6B7280",
+    fontSize: "14px",
+  }),
+
+  singleValue: (base) => ({
+    ...base,
+    color: "#111827",
+    fontSize: "14px",
+  }),
+
+  input: (base) => ({
+    ...base,
+    color: "#111827",
+    fontSize: "14px",
+  }),
+
+  menu: (base) => ({
+    ...base,
+    zIndex: 50,
+  }),
+};
+
+const countryOptions: SelectOption[] =
+  Country.getAllCountries().map((country) => ({
+    value: country.isoCode,
+    label: country.name,
+  }));
 
 export default function Billing() {
-  const { register, errors, control } = useCheckoutForm();
+  const {
+    register,
+    control,
+    setValue,
+    clearErrors,
+  } = useCheckoutForm();
+
   const { data: session } = useSession();
+
+  // Selected billing country
+  const selectedCountry = useWatch({
+    control,
+    name: "billing.regionName",
+  });
+
+  // Dynamic states / provinces
+  const stateOptions = useMemo<SelectOption[]>(() => {
+    if (!selectedCountry) return [];
+
+    return State.getStatesOfCountry(selectedCountry).map(
+      (state) => ({
+        value: state.isoCode,
+        label: state.name,
+      })
+    );
+  }, [selectedCountry]);
+
+  const hasStates = stateOptions.length > 0;
+
+  // Phone country follows billing country
+  const phoneCountry = selectedCountry
+    ? (selectedCountry as PhoneCountry)
+    : undefined;
 
   return (
     <div className="bg-white shadow-1 rounded-[10px]">
+      {/* Header */}
       <div className="p-6 py-5 border-b border-gray-3">
         <h2 className="text-lg font-medium text-dark">
           Billing details
@@ -20,19 +107,23 @@ export default function Billing() {
       </div>
 
       <div className="p-6 space-y-5">
+        {/* First Name / Last Name */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* First Name */}
           <Controller
             control={control}
-            rules={{ required: true }}
             name="billing.firstName"
+            rules={{
+              required: "First name is required",
+              validate: (value) =>
+                !!value?.trim() || "First name is required",
+            }}
             render={({ field, fieldState }) => (
               <InputGroup
                 label="First Name"
                 placeholder="John"
                 required
                 error={!!fieldState.error}
-                errorMessage="First name is required"
+                errorMessage={fieldState.error?.message}
                 name={field.name}
                 value={field.value ?? ""}
                 onChange={field.onChange}
@@ -40,18 +131,21 @@ export default function Billing() {
             )}
           />
 
-          {/* Last Name */}
           <Controller
             control={control}
-            rules={{ required: true }}
             name="billing.lastName"
+            rules={{
+              required: "Last name is required",
+              validate: (value) =>
+                !!value?.trim() || "Last name is required",
+            }}
             render={({ field, fieldState }) => (
               <InputGroup
                 label="Last Name"
                 placeholder="Doe"
                 required
                 error={!!fieldState.error}
-                errorMessage="Last name is required"
+                errorMessage={fieldState.error?.message}
                 name={field.name}
                 value={field.value ?? ""}
                 onChange={field.onChange}
@@ -67,6 +161,7 @@ export default function Billing() {
           render={({ field }) => (
             <InputGroup
               label="Company Name"
+              placeholder="Company name (optional)"
               name={field.name}
               value={field.value ?? ""}
               onChange={field.onChange}
@@ -74,61 +169,150 @@ export default function Billing() {
           )}
         />
 
-        {/* Region */}
+        {/* Country / Region */}
         <div>
           <label
-            htmlFor="regionName"
+            htmlFor="billing-country"
             className="block mb-1.5 text-sm text-gray-6"
           >
-            Region
+            Country / Region
             <span className="text-red">*</span>
           </label>
 
-          <div className="relative">
-            <select
-              {...register("billing.regionName", {
-                required: true,
-              })}
-              id="regionName"
-              className="rounded-lg border placeholder:text-sm text-sm placeholder:font-normal border-gray-3 h-11 focus:border-blue focus:outline-0 placeholder:text-dark-5 w-full py-2.5 px-4 duration-200 focus:ring-0"
-              required
-            >
-              <option value="" hidden>
-                Select your country
-              </option>
+          <Controller
+            control={control}
+            name="billing.regionName"
+            rules={{
+              required: "Please select a country",
+              validate: (value) =>
+                countryOptions.some(
+                  (country) => country.value === value
+                ) || "Please select a valid country",
+            }}
+            render={({ field, fieldState }) => (
+              <>
+                <Select<SelectOption, false>
+                  instanceId="billing-country"
+                  inputId="billing-country"
+                  classNamePrefix="checkout-select"
+                  options={countryOptions}
+                  value={
+                    countryOptions.find(
+                      (country) =>
+                        country.value === field.value
+                    ) ?? null
+                  }
+                  onChange={(option) => {
+                    const countryCode = option?.value ?? "";
 
-              <option value="australia">
-                Australia
-              </option>
-              <option value="america">
-                America
-              </option>
-              <option value="england">
-                England
-              </option>
-            </select>
-          </div>
+                    field.onChange(countryCode);
 
-          {errors.billing?.regionName && (
-            <p className="text-sm text-red mt-1.5">
-              Region is required
-            </p>
-          )}
+                    // Reset state / province
+                    setValue("billing.country", "", {
+                      shouldDirty: true,
+                      shouldValidate: false,
+                    });
+
+                    // Reset phone number for new country
+                    setValue("billing.phone", "", {
+                      shouldDirty: true,
+                      shouldValidate: false,
+                    });
+
+                    clearErrors("billing.country");
+                    clearErrors("billing.phone");
+                  }}
+                  onBlur={field.onBlur}
+                  placeholder="Select your country"
+                  isSearchable
+                  isClearable
+                  styles={selectStyles}
+                />
+
+                {fieldState.error && (
+                  <p className="text-sm text-red mt-1.5">
+                    {fieldState.error.message}
+                  </p>
+                )}
+              </>
+            )}
+          />
         </div>
+
+        {/* State / Province */}
+        {hasStates && (
+          <div>
+            <label
+              htmlFor="billing-state"
+              className="block mb-1.5 text-sm text-gray-6"
+            >
+              State / Province
+              <span className="text-red">*</span>
+            </label>
+
+            <Controller
+              control={control}
+              name="billing.country"
+              rules={{
+                validate: (value) =>
+                  !hasStates ||
+                  stateOptions.some(
+                    (state) => state.value === value
+                  ) ||
+                  "Please select a valid state/province",
+              }}
+              render={({ field, fieldState }) => (
+                <>
+                  <Select<SelectOption, false>
+                    instanceId="billing-state"
+                    inputId="billing-state"
+                    classNamePrefix="checkout-select"
+                    options={stateOptions}
+                    value={
+                      stateOptions.find(
+                        (state) =>
+                          state.value === field.value
+                      ) ?? null
+                    }
+                    onChange={(option) =>
+                      field.onChange(option?.value ?? "")
+                    }
+                    onBlur={field.onBlur}
+                    placeholder="Select state / province"
+                    isSearchable
+                    isClearable
+                    styles={selectStyles}
+                  />
+
+                  {fieldState.error && (
+                    <p className="text-sm text-red mt-1.5">
+                      {fieldState.error.message}
+                    </p>
+                  )}
+                </>
+              )}
+            />
+          </div>
+        )}
 
         {/* Street Address */}
         <div>
           <Controller
             control={control}
-            rules={{ required: true }}
             name="billing.address.street"
+            rules={{
+              required: "Street address is required",
+              validate: (value) =>
+                !!value?.trim() ||
+                "Street address is required",
+            }}
             render={({ field, fieldState }) => (
               <InputGroup
                 label="Street Address"
                 placeholder="House number and street name"
                 required
                 error={!!fieldState.error}
-                errorMessage="Street address is required"
+                errorMessage={fieldState.error?.message}
                 name={field.name}
                 value={field.value ?? ""}
                 onChange={field.onChange}
@@ -136,12 +320,20 @@ export default function Billing() {
             )}
           />
 
+          {/* Apartment / Suite */}
           <div className="mt-5">
-            <input
-              type="text"
-              {...register("billing.address.apartment")}
-              placeholder="Apartment, suite, unit, etc. (optional)"
-              className="rounded-lg border placeholder:text-sm text-sm placeholder:font-normal border-gray-3 h-11 focus:border-blue focus:outline-0 placeholder:text-dark-5 w-full py-2.5 px-4 duration-200 focus:ring-0"
+            <Controller
+              control={control}
+              name="billing.address.apartment"
+              render={({ field }) => (
+                <InputGroup
+                  label="Apartment / Suite (optional)"
+                  placeholder="Apartment, suite, unit, etc."
+                  name={field.name}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                />
+              )}
             />
           </div>
         </div>
@@ -149,14 +341,19 @@ export default function Billing() {
         {/* Town / City */}
         <Controller
           control={control}
-          rules={{ required: true }}
           name="billing.town"
+          rules={{
+            required: "Town/City is required",
+            validate: (value) =>
+              !!value?.trim() || "Town/City is required",
+          }}
           render={({ field, fieldState }) => (
             <InputGroup
-              label="Town/City"
+              label="Town / City"
+              placeholder="Enter your city"
               required
               error={!!fieldState.error}
-              errorMessage="Town is required"
+              errorMessage={fieldState.error?.message}
               name={field.name}
               value={field.value ?? ""}
               onChange={field.onChange}
@@ -164,17 +361,22 @@ export default function Billing() {
           )}
         />
 
-        {/* Country */}
+        {/* Postal / ZIP Code */}
         <Controller
           control={control}
-          rules={{ required: true }}
-          name="billing.country"
+          name="billing.postcode"
+          rules={{
+            required: "Postal code is required",
+            validate: (value) =>
+              !!value?.trim() || "Postal code is required",
+          }}
           render={({ field, fieldState }) => (
             <InputGroup
-              label="Country"
+              label="Postal / ZIP Code"
+              placeholder="Postal / ZIP code"
               required
               error={!!fieldState.error}
-              errorMessage="Country is required"
+              errorMessage={fieldState.error?.message}
               name={field.name}
               value={field.value ?? ""}
               onChange={field.onChange}
@@ -182,37 +384,89 @@ export default function Billing() {
           )}
         />
 
-        {/* Phone */}
-        <Controller
-          control={control}
-          rules={{ required: true }}
-          name="billing.phone"
-          render={({ field, fieldState }) => (
-            <InputGroup
-              type="tel"
-              label="Phone"
-              required
-              error={!!fieldState.error}
-              errorMessage="Phone number is required"
-              name={field.name}
-              value={field.value ?? ""}
-              onChange={field.onChange}
-            />
-          )}
-        />
+        {/* Phone Number */}
+        <div>
+          <label
+            htmlFor="billing-phone"
+            className="block mb-1.5 text-sm text-gray-6"
+          >
+            Phone Number
+            <span className="text-red">*</span>
+          </label>
+
+          <Controller
+            control={control}
+            name="billing.phone"
+            rules={{
+              required: "Phone number is required",
+              validate: (value) =>
+                (value && isValidPhoneNumber(value)) ||
+                "Please enter a valid phone number",
+            }}
+            render={({ field, fieldState }) => (
+              <>
+                <PhoneInput
+                  key={selectedCountry || "default"}
+                  international
+                  defaultCountry={phoneCountry}
+                  withCountryCallingCode
+                  countryCallingCodeEditable={false}
+                  value={field.value || undefined}
+                  onChange={(value) =>
+                    field.onChange(value ?? "")
+                  }
+                  onBlur={field.onBlur}
+                  numberInputProps={{
+                    id: "billing-phone",
+                    name: field.name,
+                    "aria-label": "Phone Number",
+                    placeholder: "Phone number",
+                  }}
+                  className="
+                    checkout-phone
+                    rounded-lg border border-gray-3
+                    h-11 px-4 text-sm
+                    focus-within:border-blue
+                    [&_.PhoneInputInput]:border-0
+                    [&_.PhoneInputInput]:outline-none
+                    [&_.PhoneInputInput]:ring-0
+                    [&_.PhoneInputInput]:shadow-none
+                    [&_.PhoneInputInput]:bg-transparent
+                    [&_.PhoneInputInput]:text-sm
+                    [&_.PhoneInputInput:focus]:outline-none
+                    [&_.PhoneInputInput:focus]:ring-0
+                  "
+                />
+
+                {fieldState.error && (
+                  <p className="text-sm text-red mt-1.5">
+                    {fieldState.error.message}
+                  </p>
+                )}
+              </>
+            )}
+          />
+        </div>
 
         {/* Email Address */}
         <Controller
           control={control}
-          rules={{ required: true }}
           name="billing.email"
+          rules={{
+            required: "Email is required",
+            pattern: {
+              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+              message: "Please enter a valid email address",
+            },
+          }}
           render={({ field, fieldState }) => (
             <InputGroup
               label="Email Address"
               type="email"
+              placeholder="john@example.com"
               required
               error={!!fieldState.error}
-              errorMessage="Email is required"
+              errorMessage={fieldState.error?.message}
               name={field.name}
               value={field.value ?? ""}
               onChange={field.onChange}

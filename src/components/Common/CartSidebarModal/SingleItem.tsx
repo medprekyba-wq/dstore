@@ -20,9 +20,21 @@ const SingleItem = ({ item }: any) => {
   return (
     <div className="flex items-center justify-between gap-5">
       <div className="flex items-center w-full gap-6">
-        <div className="flex items-center justify-center rounded-[10px] bg-gray-3 w-22.5 h-22.5 shrink-0">
-          <Image src={item.image} alt="product" width={64} height={64} style={{ width: "auto", height: "auto" }} />
-        </div>
+      <div className="flex items-center justify-center rounded-[10px] border border-gray-3 bg-transparent w-22.5 h-22.5 shrink-0 p-0 overflow-hidden">
+      <Image
+          src={item.image}
+          alt={item.name || "product"}
+          width={80}
+          height={80}
+          className="object-contain"
+          style={{
+            width: "auto",
+            height: "auto",
+            maxWidth: "100%",
+            maxHeight: "100%",
+          }}
+      />
+    </div>
 
         <div>
           <h3 className="mb-1 text-base font-medium duration-200 ease-out text-dark hover:text-blue">
