@@ -11,46 +11,42 @@ type Params = {
 
 export async function generateMetadata({ params }: Params) {
   const { id } = await params;
-  const productData = await getProductById(id);
-  const siteURL = process.env.SITE_URL;
-  const site_name = await getSiteName();
-  if (productData) {
+
+  try {
+    console.log("[EditProduct metadata] Loading product:", id);
+    const productData = await getProductById(id);
+    console.log("[EditProduct metadata] Product loaded");
+
+    const siteName = await getSiteName();
+    console.log("[EditProduct metadata] Site name loaded");
+
+    if (!productData) {
+      return {
+        title: "Not Found",
+        description: "No product has been found",
+      };
+    }
+
+    const siteURL = process.env.SITE_URL?.replace(/\/$/, "");
+
     return {
-      title: `${
-        productData?.title || "Product Page"
-      } | ${site_name} - Next.js E-commerce Template`,
-      description: `${productData?.description?.slice(0, 136)}...`,
-      author: `${site_name}`,
-      alternates: {
-        canonical: `${siteURL}/admin/products/edit/${productData.id}`,
-      },
+      title: `${productData.title || "Product Page"} | ${
+        siteName || "DiagnoStore"
+      }`,
+      description: productData.description?.slice(0, 136) || "",
+      ...(siteURL
+        ? {
+            alternates: {
+              canonical: `${siteURL}/admin/products/edit/${productData.id}`,
+            },
+          }
+        : {}),
     };
-  } else {
-    return {
-      title: "Not Found",
-      description: "No product has been found",
-    };
+  } catch (error) {
+    console.error("[EditProduct metadata] Failed:", error);
+    throw error;
   }
 }
-/{*
-async function EditProductPage({ params }: Params) {
-  const { id } = await params;
-  const product: any = await getProductById(id);
-  const category_data = await getCategories();
-  return (
-    <div className="w-full max-w-4xl mx-auto bg-white border rounded-xl shadow-1 border-gray-3">
-      <div className="px-6 py-5 border-b border-gray-3">
-        <h1 className="text-base font-semibold text-dark">Edit Product</h1>
-      </div>
-      <div className="p-6 h-[1200px] overflow-y-auto">
-        {product && category_data && (
-          <ProductAddForm product={product} categories={category_data} />
-        )}
-      </div>
-    </div>
-  );
-}
-*}/
 
 async function EditProductPage({ params }: Params) {
   const { id } = await params;
@@ -64,8 +60,8 @@ async function EditProductPage({ params }: Params) {
 
     stage = "loading categories";
 
-    const category_data = await getCategories();
-    console.log("[EditProduct] Categories loaded:", category_data.length);
+    const categories = await getCategories();
+    console.log("[EditProduct] Categories loaded:", categories.length);
 
     stage = "returning product form";
 
@@ -79,10 +75,19 @@ async function EditProductPage({ params }: Params) {
 
         <div className="p-6 h-[1200px] overflow-y-auto">
           {product ? (
-            <ProductAddForm
-              product={product}
-              categories={category_data}
-            />
+<ProductAddForm
+  product={{
+    ...product,
+    description: product.description ?? "",
+    shortDescription: product.shortDescription ?? "",
+    body: product.body ?? "",
+    features: product.features ?? "",
+    manufacturer: product.manufacturer ?? "",
+    sku: product.sku ?? "",
+    discountedPrice: product.discountedPrice ?? 0,
+  }}
+  categories={categories}
+/>
           ) : (
             <p>Product not found.</p>
           )}
