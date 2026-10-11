@@ -54,12 +54,13 @@ export const OrderConfirmationEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Img
+       {/*     <Img
               src={logoUrl}
               alt={`${siteName} Logo`}
               width={150}
               style={logo}
             />
+       */}   
             <Heading style={h1}>Order Confirmation</Heading>
           </Section>
 

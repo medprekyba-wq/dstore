@@ -1,4 +1,5 @@
 "use client";
+
 import Pagination from "@/components/Common/Pagination";
 import OrderModal from "@/components/Orders/OrderModal";
 import SingleOrder from "@/components/Orders/SingleOrder";
@@ -11,94 +12,111 @@ export default function OrderLists({ orderData }: any) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const toggleModal = (status: boolean, orderItem?: any) => {
-    setShowDetails(status);
-    setShowEdit(status);
-    if (status && orderItem) {
-      setSelectedOrder(orderItem);
+  const toggleModal = (status: boolean) => {
+    if (!status) {
+      setShowDetails(false);
+      setShowEdit(false);
+      setSelectedOrder(null);
     }
   };
 
-  const filteredData = orderData?.filter((order: any) => {
-    const email = order?.user?.email || order?.billing?.email || "";
-    return email.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const orders = Array.isArray(orderData) ? orderData : [];
+
+  const filteredData = orders
+    .filter((order: any) => {
+      const email =
+        order?.user?.email || order?.billing?.email || "";
+
+      return String(email)
+        .toLowerCase()
+        .includes(searchQuery.trim().toLowerCase());
+    })
+    .sort(
+      (a: any, b: any) =>
+        Number(b.orderNumber ?? 0) - Number(a.orderNumber ?? 0)
+    );
 
   const { currentItems, handlePageClick, pageCount } = usePagination(
     filteredData,
     10
   );
 
+  const columns = [
+    "Order",
+    "Date",
+    "Status",
+    "Payment Status",
+    "Name",
+    "Email",
+    "Total",
+  ];
+
   return (
     <>
       <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-5 gap-4">
-        <h2 className="text-base font-semibold text-dark">All Orders</h2>
+        <h2 className="text-base font-semibold text-dark">
+          All Orders
+        </h2>
+
         <div className="w-full sm:max-w-xs">
           <input
             type="text"
             placeholder="Search by email..."
+            aria-label="Search orders by email"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
             className="w-full h-11 px-4 text-sm font-normal duration-200 border rounded-lg border-gray-3 focus:border-blue focus:outline-0 focus:ring-0 placeholder:text-gray-5 text-dark"
           />
         </div>
       </div>
-      <div className="w-full ">
+
+      <div className="w-full">
         {currentItems?.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              {/* <!-- order item --> */}
               <thead>
                 <tr className="border-y border-gray-3">
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Order
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Name
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Email
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Date
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Status
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Payment Method
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm">
-                    Total
-                  </th>
-                  <th className="font-medium px-6 py-3.5 whitespace-nowrap text-right text-sm">
+                  {columns.map((column) => (
+                    <th
+                      key={column}
+                      scope="col"
+                      className="font-medium px-6 py-3.5 whitespace-nowrap text-left text-sm"
+                    >
+                      {column}
+                    </th>
+                  ))}
+
+                  <th
+                    scope="col"
+                    className="font-medium px-6 py-3.5 whitespace-nowrap text-right text-sm"
+                  >
                     Action
                   </th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-gray-3">
-                {currentItems?.length > 0 &&
-                  currentItems.map((orderItem: any, key: number) => (
-                    <SingleOrder
-                      key={key}
-                      orderItem={orderItem}
-                      onViewDetails={(order) => {
-                        setSelectedOrder(order);
-                        setShowDetails(true);
-                        setShowEdit(false);
-                      }}
-                      onEdit={(order) => {
-                        setSelectedOrder(order);
-                        setShowEdit(true);
-                        setShowDetails(false);
-                      }}
-                      showAll={true}
-                    />
-                  ))}
+                {currentItems.map((orderItem: any) => (
+                  <SingleOrder
+                    key={orderItem.id}
+                    orderItem={orderItem}
+                    onViewDetails={(order) => {
+                      setSelectedOrder(order);
+                      setShowDetails(true);
+                      setShowEdit(false);
+                    }}
+                    onEdit={(order) => {
+                      setSelectedOrder(order);
+                      setShowEdit(true);
+                      setShowDetails(false);
+                    }}
+                    showAll={true}
+                  />
+                ))}
               </tbody>
             </table>
-            {/* Pagination */}
-            {filteredData?.length > 10 && (
+
+            {filteredData.length > 10 && (
               <div className="flex justify-center pb-6 pagination">
                 <Pagination
                   handlePageClick={handlePageClick}
@@ -110,7 +128,7 @@ export default function OrderLists({ orderData }: any) {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-gray-5">
             <p className="text-sm">
-              {orderData?.length > 0
+              {orders.length > 0
                 ? "No orders found matching this search."
                 : "You don't have any orders!"}
             </p>
@@ -122,7 +140,7 @@ export default function OrderLists({ orderData }: any) {
         <OrderModal
           showDetails={showDetails}
           showEdit={showEdit}
-          toggleModal={(status: boolean) => toggleModal(status)}
+          toggleModal={toggleModal}
           order={selectedOrder}
         />
       )}

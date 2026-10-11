@@ -5,7 +5,7 @@ import convertToSubcurrency from "@/lib/convertToSubcurrency";
 import { useElements, useStripe } from "@stripe/react-stripe-js";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import Billing from "./Billing";
@@ -19,73 +19,86 @@ import { useCheckoutForm } from "./form";
 import type { CheckoutInput } from "./form";
 import Orders from "./orders";
 
+type PendingOrder = {
+  id: string;
+  checkoutSnapshot: string;
+  paymentIntentId?: string;
+};
+
 const CheckoutArea = ({ amount }: { amount: number }) => {
   const { handleSubmit } = useCheckoutForm();
-
   const { data: session } = useSession();
 
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
-
   const { cartDetails } = useCart();
 
   const [errorMessage, setErrorMessage] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(true);
 
-  // Create Stripe PaymentIntent
+  // Refs prevent duplicate submission before React updates state.
+  const submittingRef = useRef(false);
+  const pendingOrderRef = useRef<PendingOrder | null>(null);
+  const orderSubmissionBlockedRef = useRef(false);
+  const intentAmountRef = useRef<number | null>(null);
+
   useEffect(() => {
+    // Preserve the PaymentIntent associated with an existing order.
+    if (pendingOrderRef.current || orderSubmissionBlockedRef.current) {
+      return;
+    }
+
     let active = true;
+    const controller = new AbortController();
+
+    setClientSecret("");
+    setPaymentIntentId("");
+    intentAmountRef.current = null;
+    setErrorMessage("");
 
     const createPaymentIntent = async () => {
       setPaymentLoading(true);
-      setClientSecret("");
-      setErrorMessage("");
 
       try {
-        const response = await fetch(
-          "/api/create-payment-intent",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              amount: convertToSubcurrency(amount),
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            "Unable to initialize payment."
-          );
-        }
+        const response = await fetch("/api/create-payment-intent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: convertToSubcurrency(amount),
+          }),
+          signal: controller.signal,
+        });
 
         const result = await response.json();
 
-        if (!result?.clientSecret) {
+        if (
+          !response.ok ||
+          !result?.clientSecret ||
+          !result?.paymentIntentId
+        ) {
           throw new Error(
-            "Payment initialization failed."
+            result?.error || "Unable to initialize payment."
           );
         }
 
         if (active) {
+          intentAmountRef.current = amount;
           setClientSecret(result.clientSecret);
+          setPaymentIntentId(result.paymentIntentId);
         }
       } catch (error) {
-        console.error(
-          "PaymentIntent creation error:",
-          error
-        );
+        if (!active) return;
 
-        if (active) {
-          setErrorMessage(
-            "Unable to initialize Stripe payment. Please try again."
-          );
-        }
+        console.error("PaymentIntent creation error:", error);
+        setErrorMessage(
+          "Unable to initialize Stripe payment. Please try again."
+        );
       } finally {
         if (active) {
           setPaymentLoading(false);
@@ -93,273 +106,240 @@ const CheckoutArea = ({ amount }: { amount: number }) => {
       }
     };
 
-    if (amount > 0) {
-      createPaymentIntent();
+    if (Number.isFinite(amount) && amount > 0) {
+      void createPaymentIntent();
     } else {
       setPaymentLoading(false);
     }
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [amount]);
 
-  // Register customer account
-  const registerCustomer = async (
-    data: CheckoutInput
-  ): Promise<boolean> => {
-    if (!data.billing.createAccount) {
-      return true;
-    }
-
-    try {
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: data.billing.email,
-          name: [
-            data.billing.firstName,
-            data.billing.lastName,
-          ]
-            .filter(Boolean)
-            .join(" "),
-          password: "12345678",
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result?.success) {
-        toast.error(
-          result?.message ||
-            "Failed to create account"
-        );
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error(
-        "Account registration error:",
-        error
-      );
-
-      toast.error(
-        "Unable to create account."
-      );
-
-      return false;
-    }
-  };
-
-  // Create order
   const createOrder = async (
     data: CheckoutInput,
-    paymentStatus: "pending" | "paid",
-    paymentIntentId?: string
-  ): Promise<boolean> => {
-    const orderData = {
-      ...data,
+    checkoutSnapshot: string,
+    intentId?: string
+  ): Promise<string> => {
+    const existingOrder = pendingOrderRef.current;
 
-      totalAmount: amount,
+    if (existingOrder) {
+      if (
+        existingOrder.checkoutSnapshot !== checkoutSnapshot ||
+        existingOrder.paymentIntentId !== intentId
+      ) {
+        throw new Error(
+          `Order ${existingOrder.id} has already been created. ` +
+            "Please restore the original checkout details or contact support to change the order."
+        );
+      }
 
-      userId: session?.user?.id || null,
+      return existingOrder.id;
+    }
 
-      paymentStatus,
+    if (orderSubmissionBlockedRef.current) {
+      throw new Error(
+        "A previous order submission could not be confirmed. " +
+          "Please contact support before placing another order."
+      );
+    }
 
-      paymentIntentId,
+    // Keep submission blocked if the response is lost or the server
+    // returns an error: the order might already have been saved.
+    orderSubmissionBlockedRef.current = true;
 
-      couponCode: data.couponCode,
+    const response = await fetch("/api/order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...data,
+        totalAmount: amount,
+        paymentIntentId: intentId,
+        couponCode: data.couponCode,
+        products: Object.values(cartDetails ?? {}).map((item) => ({
+          id: item.id,
+          name: item.name,
+          slug: item.slug || item.id,
+          image: item.image || "",
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      }),
+    });
 
-      products: Object.values(
-        cartDetails ?? {}
-      ).map((item) => ({
+    const result = await response.json();
+
+    if (!response.ok || !result?.success || !result?.data?.id) {
+      // The supplied order route returns 400 before creating an order.
+      if (response.status === 400) {
+        orderSubmissionBlockedRef.current = false;
+      }
+
+      throw new Error(
+        result?.message ||
+          "Order submission could not be confirmed. Please contact support before trying again."
+      );
+    }
+
+    const orderId = result.data.id as string;
+
+    pendingOrderRef.current = {
+      id: orderId,
+      checkoutSnapshot,
+      paymentIntentId: intentId,
+    };
+
+    orderSubmissionBlockedRef.current = false;
+
+    return orderId;
+  };
+
+  const handleCheckout = async (data: CheckoutInput) => {
+    if (submittingRef.current) return;
+
+    submittingRef.current = true;
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      /*
+       * The original registration code assigned every customer
+       * the same password. Require a proper registration flow instead.
+       */
+      if (data.billing.createAccount && !session?.user) {
+        throw new Error(
+          "Please create your account using the registration page, " +
+            "or uncheck Create Account to continue as a guest."
+        );
+      }
+
+      const products = Object.values(cartDetails ?? {}).map((item) => ({
         id: item.id,
         name: item.name,
         slug: item.slug || item.id,
         image: item.image || "",
         price: item.price,
         quantity: item.quantity,
-      })),
-    };
+      }));
 
-    try {
-      const response = await fetch("/api/order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderData),
+      if (products.length === 0) {
+        throw new Error("Your cart is empty.");
+      }
+
+      const checkoutSnapshot = JSON.stringify({
+        data,
+        amount,
+        products,
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result?.success) {
-        toast.error(
-          result?.message ||
-            "Failed to create order"
-        );
-        return false;
-      }
-
-      toast.success(
-        "Order created successfully"
-      );
-
-      router.push(
-        `/order/${result?.data?.id}`
-      );
-
-      return true;
-    } catch (error) {
-      console.error(
-        "Order creation error:",
-        error
-      );
-
-      toast.error(
-        "Failed to create order."
-      );
-
-      return false;
-    }
-  };
-
-  // Handle checkout
-  const handleCheckout = async (
-    data: CheckoutInput
-  ) => {
-    if (loading) return;
-
-    setLoading(true);
-    setErrorMessage("");
-
-    try {
-      // Register account if requested
-      const accountCreated =
-        await registerCustomer(data);
-
-      if (!accountCreated) {
-        return;
-      }
-
-      // Cash on Delivery
+      // Cash on Delivery does not require Stripe to be ready.
       if (data.paymentMethod === "cod") {
-        await createOrder(
-          data,
-          "pending"
-        );
+        const orderId = await createOrder(data, checkoutSnapshot);
+
+        toast.success("Order created successfully.");
+        router.push(`/order/${orderId}`);
         return;
       }
 
-      // Stripe readiness check
       if (
         !stripe ||
         !elements ||
-        !clientSecret
+        !clientSecret ||
+        !paymentIntentId ||
+        paymentLoading ||
+        intentAmountRef.current !== amount
       ) {
-        setErrorMessage(
-          "Payment system is not ready. Please try again."
+        throw new Error(
+          "Payment system is not ready. Please wait and try again."
         );
-        return;
       }
 
-      // Validate Stripe Payment Element
-      const { error: submitError } =
-        await elements.submit();
+      // Validate payment details before reserving stock.
+      const { error: submitError } = await elements.submit();
 
       if (submitError) {
-        setErrorMessage(
-          submitError.message ||
-            "Please check your payment details."
+        throw new Error(
+          submitError.message || "Please check your payment details."
         );
-        return;
       }
 
-      const siteUrl =
-        window.location.origin;
+      // Save the pending order and attach its ID to Stripe first.
+      const orderId = await createOrder(
+        data,
+        checkoutSnapshot,
+        paymentIntentId
+      );
 
-      // Confirm Stripe payment
-      const {
-        paymentIntent,
-        error,
-      } = await stripe.confirmPayment({
+      const { paymentIntent, error } = await stripe.confirmPayment({
         elements,
         clientSecret,
-
         confirmParams: {
-          return_url:
-            `${siteUrl}/success?amount=${amount}`,
+          return_url: `${window.location.origin}/order/${orderId}`,
         },
-
         redirect: "if_required",
       });
 
       if (error) {
-        console.error(
-          "Stripe payment error:",
-          error
-        );
+        console.error("Stripe payment error:", error);
 
-        setErrorMessage(
-          error.message ||
-            "Payment failed. Please try again."
-        );
+        // A network error can occur after payment succeeds.
+        // Retrieve the current status before offering another attempt.
+        try {
+          const current = await stripe.retrievePaymentIntent(clientSecret);
+          const status = current.paymentIntent?.status;
 
-        return;
-      }
-
-      if (
-        paymentIntent?.status ===
-        "succeeded"
-      ) {
-        const orderCreated =
-          await createOrder(
-            data,
-            "paid",
-            paymentIntent.id
-          );
-
-        if (!orderCreated) {
-          setErrorMessage(
-            "Your payment was successful, but your order could not be saved. Please contact support with your payment reference."
-          );
-
-          console.error(
-            "Payment succeeded but order creation failed:",
-            paymentIntent.id
-          );
+          if (status === "succeeded" || status === "processing") {
+            router.push(`/order/${orderId}`);
+            return;
+          }
+        } catch (statusError) {
+          console.error("Unable to retrieve payment status:", statusError);
         }
 
-        return;
+        throw new Error(
+          `${error.message || "Unable to confirm payment."} ` +
+            `Your order reference is ${orderId}.`
+        );
       }
 
       if (
-        paymentIntent?.status ===
-        "processing"
+        paymentIntent?.status === "succeeded" ||
+        paymentIntent?.status === "processing"
       ) {
         toast.success(
-          "Payment is processing."
+          paymentIntent.status === "processing"
+            ? "Payment is processing."
+            : "Payment submitted successfully."
         );
+
+        // The webhook updates paymentStatus on the server.
+        router.push(`/order/${orderId}`);
         return;
       }
 
-      setErrorMessage(
-        "Payment was not completed. Please try again."
+      if (paymentIntent?.status === "canceled") {
+        throw new Error(
+          `Payment was canceled. Please contact support about order ${orderId}.`
+        );
+      }
+
+      throw new Error(
+        `Payment has not completed. Your order reference is ${orderId}.`
       );
     } catch (error) {
-      console.error(
-        "Checkout processing error:",
-        error
-      );
+      console.error("Checkout processing error:", error);
 
       setErrorMessage(
-        "Order processing failed. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Order processing failed. Please try again."
       );
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -371,22 +351,14 @@ const CheckoutArea = ({ amount }: { amount: number }) => {
 
         <form
           className="contents"
-          onSubmit={handleSubmit(
-            handleCheckout
-          )}
+          onSubmit={handleSubmit(handleCheckout)}
         >
           <Billing />
-
           <Shipping />
-
           <Notes />
-
           <Orders />
-
           <Coupon />
-
           <ShippingMethod />
-
           <PaymentMethod amount={amount} />
 
           <button
@@ -410,9 +382,7 @@ const CheckoutArea = ({ amount }: { amount: number }) => {
               disabled:cursor-not-allowed
             "
           >
-            {loading
-              ? "Processing..."
-              : `Pay $${amount.toFixed(2)}`}
+            {loading ? "Processing..." : `Pay $${amount.toFixed(2)}`}
           </button>
 
           {paymentLoading && (
