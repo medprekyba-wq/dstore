@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -14,7 +13,17 @@ import {
 } from "@/get-api-data/product";
 
 import { getSiteName } from "@/get-api-data/seo-setting";
-import { IProductByDetails } from "@/types/product";
+import type { IProductByDetails } from "@/types/product";
+
+// ======================================================
+// CONFIGURATION
+// ======================================================
+
+const SITE_URL = (
+  process.env.SITE_URL || "https://www.diagnostore.com"
+).replace(/\/+$/, "");
+
+const PRODUCT_CURRENCY = "USD";
 
 // ======================================================
 // TYPES
@@ -25,6 +34,21 @@ type Props = {
     slug: string;
   }>;
 };
+
+// ======================================================
+// HELPERS
+// ======================================================
+
+function toAbsoluteUrl(value: string): string {
+  return new URL(value, `${SITE_URL}/`).href;
+}
+
+function toPlainText(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 // ======================================================
 // STATIC PARAMS
@@ -50,18 +74,12 @@ export async function generateMetadata({
   const { slug } = await params;
 
   const product = await getProductBySlug(slug);
-
-  // Ensure siteName is always a string
-  const siteName =
-    (await getSiteName()) ?? "Online Store";
-
-  const siteURL = process.env.SITE_URL;
+  const siteName = (await getSiteName()) ?? "Online Store";
 
   if (!product) {
     return {
       title: "Product Not Found",
-      description:
-        "The requested product could not be found.",
+      description: "The requested product could not be found.",
       robots: {
         index: false,
         follow: false,
@@ -70,19 +88,16 @@ export async function generateMetadata({
   }
 
   const description =
-    product.shortDescription?.slice(0, 160) ||
+    toPlainText(product.shortDescription ?? "").slice(0, 160) ||
     `View ${product.title} at ${siteName}.`;
 
-  const canonicalUrl = siteURL
-    ? `${siteURL.replace(/\/$/, "")}/products/${product.slug}`
-    : `/products/${product.slug}`;
+  const canonicalUrl = `${SITE_URL}/products/${product.slug}`;
 
-  const image =
-    product.productImages?.[0]?.image ?? "";
+  const imagePath = product.productImages?.[0]?.image;
+  const image = imagePath ? toAbsoluteUrl(imagePath) : "";
 
   return {
     title: `${product.title || "Product"} | ${siteName}`,
-
     description,
 
     authors: [
@@ -98,7 +113,6 @@ export async function generateMetadata({
     robots: {
       index: true,
       follow: true,
-
       googleBot: {
         index: true,
         follow: true,
@@ -113,20 +127,19 @@ export async function generateMetadata({
       description,
       url: canonicalUrl,
       siteName,
-
-      ...(image && {
-        images: [
-          {
-            url: image,
-            width: 1800,
-            height: 1600,
-            alt: product.title || siteName,
-          },
-        ],
-      }),
-
       locale: "en_US",
       type: "website",
+
+      ...(image
+        ? {
+            images: [
+              {
+                url: image,
+                alt: product.title || siteName,
+              },
+            ],
+          }
+        : {}),
     },
 
     twitter: {
@@ -134,9 +147,11 @@ export async function generateMetadata({
       title: `${product.title} | ${siteName}`,
       description,
 
-      ...(image && {
-        images: [image],
-      }),
+      ...(image
+        ? {
+            images: [image],
+          }
+        : {}),
     },
   };
 }
@@ -145,7 +160,7 @@ export async function generateMetadata({
 // PRODUCT DETAILS PAGE
 // ======================================================
 
-const ProductDetails = async ({ params }: Props) => {
+export default async function ProductDetails({ params }: Props) {
   const { slug } = await params;
 
   const product = await getProductBySlug(slug);
@@ -169,13 +184,21 @@ const ProductDetails = async ({ params }: Props) => {
   // PRODUCT IMAGES
   // ====================================================
 
-  const mainImage =
-    product.productImages?.[0]?.image ?? "";
+  const mainImage = product.productImages?.[0]?.image ?? "";
 
   const thumbnails =
     product.productImages?.map((image) => ({
       image: image.image,
     })) ?? [];
+
+  const imageUrls = Array.from(
+    new Set(
+      (product.productImages ?? [])
+        .map((item) => item.image)
+        .filter((image): image is string => Boolean(image))
+        .map(toAbsoluteUrl)
+    )
+  );
 
   // ====================================================
   // PRODUCT VARIANTS
@@ -185,20 +208,13 @@ const ProductDetails = async ({ params }: Props) => {
     product.variantGroups?.map((group) => ({
       id: group.id,
       name: group.name,
-
-      // FIX: Required by VariantGroup type
       showName: group.showName,
-
       position: group.position,
 
       options: group.options.map((option) => ({
         id: option.id,
         name: option.name,
-
-        priceAdjustment: Number(
-          option.priceAdjustment
-        ),
-
+        priceAdjustment: Number(option.priceAdjustment),
         isDefault: option.isDefault,
         position: option.position,
       })),
@@ -208,22 +224,14 @@ const ProductDetails = async ({ params }: Props) => {
   // ALGOLIA INDEXING
   // ====================================================
 
-  const siteURL =
-    process.env.SITE_URL?.replace(/\/$/, "") ?? "";
+  const productUrl = `${SITE_URL}/products/${product.slug}`;
 
   await structuredAlgoliaHtmlData({
     type: "products",
-
     title: product.title,
-
-    htmlString:
-      product.shortDescription ?? "",
-
-    pageUrl:
-      `${siteURL}/products/${product.slug}`,
-
+    htmlString: product.shortDescription ?? "",
+    pageUrl: productUrl,
     imageURL: mainImage,
-
     price: Number(product.price),
 
     discountedPrice:
@@ -231,11 +239,8 @@ const ProductDetails = async ({ params }: Props) => {
         ? Number(product.discountedPrice)
         : null,
 
-    category:
-      product.category?.title ?? "",
-
+    category: product.category?.title ?? "",
     id: product.id,
-
     thumbnails,
 
     previewImage: mainImage
@@ -248,11 +253,75 @@ const ProductDetails = async ({ params }: Props) => {
   });
 
   // ====================================================
+  // GOOGLE PRODUCT STRUCTURED DATA
+  // ====================================================
+
+  const currentPrice = Number(
+    product.discountedPrice ?? product.price
+  );
+
+  const hasValidPrice =
+    Number.isFinite(currentPrice) && currentPrice >= 0;
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${productUrl}#product`,
+
+    name: product.title,
+    url: productUrl,
+
+    description:
+      toPlainText(product.shortDescription ?? "") ||
+      product.title,
+
+    ...(imageUrls.length > 0
+      ? {
+          image: imageUrls,
+        }
+      : {}),
+
+    ...(hasValidPrice
+      ? {
+          offers: {
+            "@type": "Offer",
+            url: productUrl,
+            priceCurrency: PRODUCT_CURRENCY,
+            price: currentPrice.toFixed(2),
+
+            availability:
+              Number(product.quantity) > 0
+                ? "https://schema.org/InStock"
+                : "https://schema.org/OutOfStock",
+
+            itemCondition: "https://schema.org/NewCondition",
+
+            seller: {
+              "@type": "Organization",
+              name: "DiagnoStore Ltd.",
+            },
+          },
+        }
+      : {}),
+  };
+
+  // ====================================================
   // RENDER
   // ====================================================
 
   return (
     <main>
+      <script
+        id="product-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productJsonLd).replace(
+            /</g,
+            "\\u003c"
+          ),
+        }}
+      />
+
       <Breadcrumb
         items={[
           {
@@ -270,15 +339,9 @@ const ProductDetails = async ({ params }: Props) => {
         ]}
       />
 
-      <ShopDetails
-        product={product as IProductByDetails}
-      />
+      <ShopDetails product={product as IProductByDetails} />
 
-      <RecentlyViewedItems
-        products={recentProducts}
-      />
+      <RecentlyViewedItems products={recentProducts} />
     </main>
   );
-};
-
-export default ProductDetails;
+}
