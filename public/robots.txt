@@ -1,9 +1,8 @@
-# *
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /cart/
 
-# Host
-Host: https://www.diagnostore.com
-
-# Sitemaps
 Sitemap: https://www.diagnostore.com/sitemap.xml
