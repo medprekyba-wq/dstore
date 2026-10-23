@@ -20,7 +20,7 @@ export const getSiteName = async () => {
     ? siteName.siteName
     : process.env.SITE_NAME
       ? process.env.SITE_NAME
-      : "Cozy-commerce";
+      : "DiagnoStore.com";
 };
 
 // get logo 

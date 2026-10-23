@@ -42,14 +42,29 @@ export default function SeoSettingForm({
             favicon: {
                 image: seoSettingItem?.favicon || "",
             },
-            siteName: seoSettingItem?.siteName || "Cozy-commerce",
-            siteTitle: seoSettingItem?.siteTitle || "Home Page",
-            metadescription: seoSettingItem?.metadescription || "Cozy-commerce is a next.js e-commerce boilerplate built with nextjs, typescript, tailwindcss, and prisma.",
+
+            siteName:
+                seoSettingItem?.siteName ||
+                "DiagnoStore.com",
+
+            siteTitle:
+                seoSettingItem?.siteTitle ||
+                "Medical Equipment & Diagnostic Devices | DiagnoStore.com",
+
+            metadescription:
+                seoSettingItem?.metadescription ||
+                "Shop medical equipment and diagnostic devices at DiagnoStore. Explore endoscopes, laryngoscopes, ultrasound systems, patient monitors, diagnostic instruments and veterinary equipment.",
+
             metaImage: {
                 image: seoSettingItem?.metaImage || "",
             },
-            metaKeywords: seoSettingItem?.metaKeywords || "e-commerce, online store",
+
+            metaKeywords:
+                seoSettingItem?.metaKeywords ||
+                "medical equipment, medical devices, diagnostic equipment, medical instruments, healthcare equipment, hospital equipment, diagnostic devices, endoscopes, video laryngoscopes, bronchoscopes, nasopharyngoscopes, ultrasound systems, patient monitors, ECG monitors, pulse oximeters, blood pressure monitors, otoscopes, ophthalmoscopes, surgical instruments, veterinary equipment, veterinary diagnostic tests, medical equipment supplier, DiagnoStore",
+
             enableGTM: false,
+
             gtmId: seoSettingItem?.gtmId || "",
         },
     });
