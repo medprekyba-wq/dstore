@@ -74,7 +74,7 @@ export async function generateMetadata({
   const { slug } = await params;
 
   const product = await getProductBySlug(slug);
-  const siteName = (await getSiteName()) ?? "Online Store";
+  const siteName = (await getSiteName()) ?? "DiagnoStore.com";
 
   if (!product) {
     return {
