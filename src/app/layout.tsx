@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const seoSettings = await getSeoSettings();
   const site_name = await getSiteName();
   return {
-    title: `DiagnoStore.com | Medical Equipment and Diagnostic Devices`,
+    title: `DiagnoStore | Medical Equipment and Diagnostic Devices`,
     description: "Get the best Medical Equipment and Diagnostic Devices Online. Worldwide Delivery.",
     keywords: seoSettings?.metaKeywords || "e-commerce, online store",
     openGraph: {
