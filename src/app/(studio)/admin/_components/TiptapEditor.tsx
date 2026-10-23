@@ -12,9 +12,46 @@ import Image from "@tiptap/extension-image";
 import {
   Table,
   TableRow,
-  TableHeader,
-  TableCell,
+  TableHeader as BaseTableHeader,
+  TableCell as BaseTableCell,
 } from "@tiptap/extension-table";
+
+// Remove redundant default spans when Tiptap serializes table cells.
+// Actual merged cells (colspan/rowspan > 1) are preserved.
+function cleanCellAttributes(attributes: Record<string, any>) {
+  const cleaned = { ...attributes };
+
+  if (String(cleaned.colspan) === "1") delete cleaned.colspan;
+  if (String(cleaned.rowspan) === "1") delete cleaned.rowspan;
+
+  return cleaned;
+}
+
+const TableCell = BaseTableCell.extend({
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "td",
+      cleanCellAttributes({
+        ...this.options.HTMLAttributes,
+        ...HTMLAttributes,
+      }),
+      0,
+    ];
+  },
+});
+
+const TableHeader = BaseTableHeader.extend({
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "th",
+      cleanCellAttributes({
+        ...this.options.HTMLAttributes,
+        ...HTMLAttributes,
+      }),
+      0,
+    ];
+  },
+});
 
 type TiptapEditorProps = {
   label?: string;

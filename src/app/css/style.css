@@ -617,8 +617,18 @@ input[type="search"]::-webkit-search-results-decoration {
     .footer-columns > * { flex: 1; /* make both columns share the width */ } 
     }
 
-table.technical-specs {
+.technical-specs {
   width: 100%;
+  table-layout: auto;
+}
+
+@media (min-width: 1024px) {
+   .technical-specs td:first-child:not([colspan]) {
+    width: 1%;
+    white-space: nowrap;
+    min-width: 350px;
+    padding-right: 20px;
+  }
 }
 
 table.technical-specs, table.technical-specs th, table.technical-specs td {
