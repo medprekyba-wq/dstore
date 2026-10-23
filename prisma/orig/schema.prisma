@@ -279,7 +279,7 @@ model TermsConditions {
 model SeoSetting {
   id              Int      @id @default(autoincrement())
   favicon         String?
-  siteName        String?  @default("Cozy-commerce")
+  siteName        String?  @default("DiagnoStore.com")
   siteTitle       String?  @default("Home Page")
   metadescription String?
   metaImage       String?
