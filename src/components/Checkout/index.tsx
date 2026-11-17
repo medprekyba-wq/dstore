@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import convertToSubcurrency from "@/lib/convertToSubcurrency";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -28,7 +28,12 @@ if (!stripePublishableKey) {
 const stripePromise = loadStripe(stripePublishableKey);
 
 export default function CheckoutMain() {
+  const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     register,
@@ -46,8 +51,8 @@ export default function CheckoutMain() {
     defaultValues: {
       // Shipping method
       shippingMethod: {
-        name: "free",
-        price: 0,
+        name: "regular",
+        price: 8.95,
       },
 
       // Payment method
@@ -159,12 +164,18 @@ export default function CheckoutMain() {
     !cartDetails ||
     Object.keys(cartDetails).length === 0;
 
-  // Shipping cost
-  const shippingMethod = watch("shippingMethod");
+  // Regular tracked airmail shipping tiers, based on item subtotal.
+  const shippingPrice =
+    totalPrice < 100 ? 8.95 : totalPrice <= 150 ? 14.95 : 19.95;
 
-  const shippingPrice = Number(
-    shippingMethod?.price ?? 0
-  );
+  // Keep the form value synchronized with the calculated rate.
+  useEffect(() => {
+    if (!mounted) return;
+    const current = getValues("shippingMethod");
+    if (current?.name !== "regular" || current.price !== shippingPrice) {
+      setValue("shippingMethod", { name: "regular", price: shippingPrice });
+    }
+  }, [mounted, shippingPrice, getValues, setValue]);
 
   // Coupon discount percentage
   const discountPercentage = Number(
@@ -195,6 +206,16 @@ export default function CheckoutMain() {
     errors,
     handleSubmit,
   };
+
+  // Server and first client render must use the same markup.
+  // Cart state may be restored from browser storage after mounting.
+  if (!mounted) {
+    return (
+      <div className="py-20 mt-40 text-center text-gray-6">
+        Loading checkout...
+      </div>
+    );
+  }
 
   // Empty cart
   if (cartIsEmpty) {

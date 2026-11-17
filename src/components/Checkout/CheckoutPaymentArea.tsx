@@ -5,7 +5,7 @@ import convertToSubcurrency from "@/lib/convertToSubcurrency";
 import { useElements, useStripe } from "@stripe/react-stripe-js";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import Billing from "./Billing";
@@ -38,7 +38,6 @@ const CheckoutPaymentArea = ({ amount }: { amount: number }) => {
   const [clientSecret, setClientSecret] = useState("");
   const [paymentIntentId, setPaymentIntentId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(true);
 
   const submittingRef = useRef(false);
   const pendingOrderRef = useRef<PendingOrder | null>(null);
@@ -53,79 +52,40 @@ const CheckoutPaymentArea = ({ amount }: { amount: number }) => {
     router.push(`/order/${orderId}`);
   };
 
-  useEffect(() => {
-    if (pendingOrderRef.current || submissionBlockedRef.current) {
-      return;
-    }
-
-    let active = true;
-    const controller = new AbortController();
-
-    setClientSecret("");
-    setPaymentIntentId("");
-    setErrorMessage("");
-    intentAmountRef.current = null;
-
-    const initializePayment = async () => {
-      setPaymentLoading(true);
-
-      try {
-        const response = await fetch("/api/create-payment-intent", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            amount: convertToSubcurrency(amount),
-          }),
-          signal: controller.signal,
-        });
-
-        const result = await response.json();
-
-        if (
-          !response.ok ||
-          typeof result?.clientSecret !== "string" ||
-          typeof result?.paymentIntentId !== "string"
-        ) {
-          throw new Error(
-            result?.error || "Unable to initialize payment."
-          );
-        }
-
-        if (active) {
-          intentAmountRef.current = amount;
-          setClientSecret(result.clientSecret);
-          setPaymentIntentId(result.paymentIntentId);
-        }
-      } catch (error) {
-        if (!active) return;
-
-        console.error("Payment initialization failed.");
-
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to initialize Stripe payment."
+  // A PaymentIntent is created only after the buyer submits valid details.
+  // Keep the intent for retries so one order cannot create multiple intents.
+  const initializePayment = async () => {
+    if (clientSecret && paymentIntentId) {
+      if (intentAmountRef.current !== amount) {
+        throw new Error(
+          "The checkout total changed after payment was initiated. " +
+          "Please reload checkout before trying again."
         );
-      } finally {
-        if (active) {
-          setPaymentLoading(false);
-        }
       }
-    };
-
-    if (Number.isFinite(amount) && amount > 0) {
-      void initializePayment();
-    } else {
-      setPaymentLoading(false);
+      return { clientSecret, paymentIntentId };
     }
 
-    return () => {
-      active = false;
-      controller.abort();
+    const response = await fetch("/api/create-payment-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: convertToSubcurrency(amount) }),
+    });
+    const result = await response.json();
+    if (
+      !response.ok ||
+      typeof result?.clientSecret !== "string" ||
+      typeof result?.paymentIntentId !== "string"
+    ) {
+      throw new Error(result?.error || "Unable to initialize payment.");
+    }
+    intentAmountRef.current = amount;
+    setClientSecret(result.clientSecret);
+    setPaymentIntentId(result.paymentIntentId);
+    return {
+      clientSecret: result.clientSecret as string,
+      paymentIntentId: result.paymentIntentId as string,
     };
-  }, [amount]);
+  };
 
   const getProducts = () =>
     Object.values(cartDetails ?? {}).map((item) => ({
@@ -253,20 +213,24 @@ if (response.status === 400 || response.status === 409) {
         return;
       }
 
-      if (
-        !stripe ||
-        !elements ||
-        !clientSecret ||
-        !paymentIntentId ||
-        paymentLoading
-      ) {
+      if (!stripe || !elements) {
+        throw new Error("Payment system is not ready. Please try again.");
+      }
+
+      // Validate the Payment Element before creating anything in Stripe.
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
         throw new Error(
-          "Payment system is not ready. Please wait and try again."
+          submitError.message || "Please check your payment details."
         );
       }
 
+      const intent = await initializePayment();
+      const activeSecret = intent.clientSecret;
+      const activeIntentId = intent.paymentIntentId;
+
       // Check whether a previous attempt already completed payment.
-      const current = await stripe.retrievePaymentIntent(clientSecret);
+      const current = await stripe.retrievePaymentIntent(activeSecret);
 
       if (current.error || !current.paymentIntent) {
         throw new Error(
@@ -285,7 +249,7 @@ if (response.status === 400 || response.status === 409) {
         if (!existingOrder) {
           throw new Error(
             "This payment has already been submitted. " +
-              `Please contact support with payment reference ${paymentIntentId}.`
+              `Please contact support with payment reference ${activeIntentId}.`
           );
         }
 
@@ -317,7 +281,7 @@ if (response.status === 400 || response.status === 409) {
       if (
         existingOrder &&
         (existingOrder.snapshot !== snapshot ||
-          existingOrder.paymentIntentId !== paymentIntentId)
+          existingOrder.paymentIntentId !== activeIntentId)
       ) {
         throw new Error(
           `Order ${existingOrder.id} already exists. ` +
@@ -325,24 +289,15 @@ if (response.status === 400 || response.status === 409) {
         );
       }
 
-      // Validate the Payment Element before creating a pending order.
-      const { error: submitError } = await elements.submit();
-
-      if (submitError) {
-        throw new Error(
-          submitError.message || "Please check your payment details."
-        );
-      }
-
       const orderId = await createOrder(
         data,
         snapshot,
-        paymentIntentId
+        activeIntentId
       );
 
       const { paymentIntent, error } = await stripe.confirmPayment({
         elements,
-        clientSecret,
+        clientSecret: activeSecret,
         confirmParams: {
           return_url: `${window.location.origin}/order/${orderId}`,
         },
@@ -353,7 +308,7 @@ if (response.status === 400 || response.status === 409) {
         // Check status before treating confirmation as failed.
         // A successful payment can produce an unexpected-state error
         // if it was confirmed again.
-        const latest = await stripe.retrievePaymentIntent(clientSecret);
+        const latest = await stripe.retrievePaymentIntent(activeSecret);
 
         if (
           latest.paymentIntent?.status === "succeeded" ||
@@ -446,11 +401,6 @@ if (response.status === 400 || response.status === 409) {
                   : `Pay $${amount.toFixed(2)}`}
               </button>
 
-              {paymentLoading && (
-                <p className="text-center text-sm text-gray-6">
-                  Initializing payment...
-                </p>
-              )}
             </div>
           </div>
 
